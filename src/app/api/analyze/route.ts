@@ -1,38 +1,65 @@
 import { NextResponse } from 'next/server';
+import dns from 'dns';
+import { additionalReview } from '@/lib/services/ai-review';
+import { analysisCache, analysisCacheKey } from '@/lib/analysis-cache';
+import { analyzeSample, summarizeEvidence, type SampleEvidence } from '@/lib/services/detection';
 
-// Type definitions matching the frontend expectation
-type SignalResult = {
-  name: string;
-  val: number;
-  status: string;
-  icon: string;
-};
+// Fix local Windows IPv6 timeout issues during development without breaking Render Linux deployment
+if (process.env.NODE_ENV === 'development') {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
-type AnalysisResponse = {
-  id: string;
-  filename: string;
-  score: number;
-  status: string;
-  color: 'authentic' | 'synthetic' | 'inconclusive';
-  desc: string;
-  signals: SignalResult[];
-  supporting: string[];
-  caution: string[];
-  metadata: Record<string, string>;
-};
+// Retry transient transport failures once; keep provider errors and results intact.
+async function fetchWithRetry(url: string, init: RequestInit = {}): Promise<Response> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await fetch(url, {
+        ...init,
+        signal: AbortSignal.timeout(20000),
+      });
+    } catch (error) {
+      if (attempt === 0) {
+        await new Promise(resolve => setTimeout(resolve, 600));
+        continue;
+      }
+      const cause = error as Error & { cause?: { code?: string } };
+      const host = new URL(url).hostname;
+      const timedOut = cause.name === 'TimeoutError' || cause.name === 'AbortError';
+      throw new Error(timedOut
+        ? `Connection to ${host} timed out after retrying. Please try again.`
+        : `Could not connect to ${host} after retrying. Check your internet connection and try again.`,
+        { cause: error });
+    }
+  }
+  throw new Error('Request could not complete.');
+}
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    const file = formData.get('file') as File;
-
-    if (!file) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    const files = formData.getAll('file').filter((value): value is File => value instanceof File);
+    if (!files.length || files.length > 3 || files.some(f => !f.size || f.size > 10 * 1024 * 1024)) {
+      return NextResponse.json({ error: 'Choose one image, or up to three sampled video frames, each under 10 MB.' }, { status: 400 });
     }
+    const isVideo = formData.get('type') === 'video';
+    if (!isVideo && files.length !== 1) return NextResponse.json({ error: 'Analyse one image at a time.' }, { status: 400 });
+    let timestamps: number[] = [];
+    try {
+      timestamps = JSON.parse(String(formData.get('timestamps') || '[]'));
+      if (!Array.isArray(timestamps) || timestamps.some(t => typeof t !== 'number' || !Number.isFinite(t) || t < 0 || t > 86400) || (isVideo && timestamps.length !== files.length)) throw new Error();
+    } catch { return NextResponse.json({ error: 'Video frame timestamps are invalid. Upload the video again.' }, { status: 400 }); }
+    const file = files[Math.floor(files.length / 2)];
+    const originalName = String(formData.get('originalName') || file.name).slice(0, 255);
+    const cacheKey = await analysisCacheKey(files, { originalName, isVideo, timestamps });
+    return await analysisCache.run(cacheKey, async () => {
+    let samples: SampleEvidence[];
+    try {
+      samples = await Promise.all(files.map((sample, index) => analyzeSample(sample, index + 1, isVideo ? timestamps[index] : null, fetchWithRetry)));
+    } catch { return NextResponse.json({ error: 'Image could not be decoded safely. Choose JPG, PNG, or WebP, below 25 million pixels.' }, { status: 400 }); }
 
     // Attempt to guess source from filename
     let source = "Unknown (No provenance data)";
-    const lowerName = file.name.toLowerCase();
+    const lowerName = originalName.toLowerCase();
     if (lowerName.includes('whatsapp')) source = "WhatsApp";
     else if (lowerName.includes('instagram') || lowerName.includes('ig_')) source = "Instagram";
     else if (lowerName.includes('twitter') || lowerName.includes('tw_')) source = "Twitter / X";
@@ -51,166 +78,108 @@ export async function POST(request: Request) {
     // AUDIO ANALYSIS: Hugging Face API
     // ==========================================
     if (file.type.startsWith('audio/')) {
-      const hfToken = process.env.HUGGINGFACE_API_KEY;
-      if (!hfToken) {
-        return NextResponse.json({ 
-          error: "Missing Hugging Face API key",
-          details: "Please add HUGGINGFACE_API_KEY to your .env.local file."
-        }, { status: 500 });
-      }
-
-      const buffer = await file.arrayBuffer();
-      
-      let hfData;
-      let retries = 2;
-      while (retries >= 0) {
-        const hfResponse = await fetch('https://api-inference.huggingface.co/models/MelodyMachine/Deepfake-audio-detection-V2', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${hfToken}`,
-            'Content-Type': file.type || 'audio/wav'
-          },
-          body: buffer
-        });
-        
-        hfData = await hfResponse.json();
-
-        if (hfResponse.ok && !hfData.error) {
-          break; // Success
-        }
-
-        if (hfResponse.status === 503 && hfData.estimated_time && retries > 0) {
-          const waitTime = Math.ceil(hfData.estimated_time) * 1000;
-          console.log(`Audio model loading. Waiting ${waitTime}ms...`);
-          await new Promise(resolve => setTimeout(resolve, Math.min(waitTime, 15000)));
-          retries--;
-          continue;
-        }
-
-        console.error("Hugging Face Error:", hfData);
-        return NextResponse.json({ error: hfData.error || 'Hugging Face API Error' }, { status: 503 });
-      }
-
-      // Parse the classification labels (e.g. 'fake', 'spoof' vs 'real', 'bonafide')
-      let syntheticProbability = 0;
-      if (Array.isArray(hfData)) {
-          const fakeItem = hfData.find((item: any) => ['fake', 'spoof', 'ai', 'synthetic'].includes(item.label.toLowerCase()));
-          if (fakeItem) {
-              syntheticProbability = fakeItem.score;
-          } else {
-              const realItem = hfData.find((item: any) => ['real', 'bonafide', 'human', 'authentic'].includes(item.label.toLowerCase()));
-              if (realItem) {
-                  syntheticProbability = 1 - realItem.score;
-              } else {
-                  syntheticProbability = hfData[0]?.score || 0; 
-              }
-          }
-      }
-
-      const confidencePercentage = Math.round(syntheticProbability * 100);
-      const isSynthetic = confidencePercentage >= 60;
-      const isAuthentic = confidencePercentage <= 40;
-
-      const statusObj = isSynthetic 
-        ? { status: 'LIKELY SYNTHETIC', color: 'synthetic' as const, desc: 'High probability of AI voice generation or cloning detected.' }
-        : isAuthentic
-          ? { status: 'LIKELY AUTHENTIC', color: 'authentic' as const, desc: 'Acoustic patterns are consistent with authentic human speech.' }
-          : { status: 'INCONCLUSIVE', color: 'inconclusive' as const, desc: 'Mixed acoustic signals detected. Cannot confirm authenticity.' };
-
-      const score = isSynthetic ? confidencePercentage : (100 - confidencePercentage);
-
-      return NextResponse.json({
-        id: crypto.randomUUID(),
-        filename: file.name,
-        score: score,
-        ...statusObj,
-        signals: [
-          { name: "Vocoder Artifacts", val: confidencePercentage, status: isSynthetic ? "Synthetic patterns detected" : "Natural", icon: "Activity" },
-          { name: "Spectral Consistency", val: isAuthentic ? 88 : 45, status: isAuthentic ? "Consistent" : "Anomalous frequencies", icon: "Maximize" },
-          { name: "Source Verification", val: isAuthentic ? 90 : 30, status: source, icon: "LinkIcon" }
-        ],
-        supporting: isAuthentic ? ["Natural breath patterns detected", "Acoustic room resonance is consistent"] : [],
-        caution: isSynthetic ? [`High synthetic confidence: ${confidencePercentage}%`, "Unnatural phase alignment detected"] : [],
-        metadata
-      });
+      return NextResponse.json({ error: 'Audio verification is temporarily disabled.' }, { status: 400 });
     }
 
     // ==========================================
     // IMAGE ANALYSIS: Sightengine API (Also handles extracted video frames)
     // ==========================================
-    const apiUser = process.env.SIGHTENGINE_USER;
-    const apiSecret = process.env.SIGHTENGINE_SECRET;
+    // Start compatible detectors together; OCR/source finding continue as before.
+    // Both task-specific scores have been collected for each sample above.
 
-    if (!apiUser || !apiSecret) {
-      // If keys are missing, return a clear error instructing the user
-      return NextResponse.json({ 
-        error: "Missing Sightengine API keys in .env.local file",
-        details: "Please add SIGHTENGINE_USER and SIGHTENGINE_SECRET to your environment variables."
-      }, { status: 500 });
+    // 2. Perform OCR using OCR.Space API to extract text from the image
+    let extractedText = "";
+    try {
+      const ocrForm = new FormData();
+      ocrForm.append('apikey', 'K84502294088957');
+      ocrForm.append('file', file);
+      ocrForm.append('OCREngine', '2'); // Engine 2 is better for numbers/special characters
+      
+      const ocrResponse = await fetchWithRetry('https://api.ocr.space/parse/image', {
+        method: 'POST',
+        body: ocrForm
+      });
+      const ocrData = await ocrResponse.json();
+      
+      if (ocrData.ParsedResults && ocrData.ParsedResults.length > 0) {
+        extractedText = ocrData.ParsedResults[0].ParsedText.replace(/\n+/g, ' ').trim();
+      }
+    } catch (ocrError) {
+      console.error("OCR API Error:", ocrError);
+      // OCR failure should not crash the main pipeline
     }
 
-    // Create payload for Sightengine
-    const sightengineForm = new FormData();
-    sightengineForm.append('models', 'genai'); // AI generation detection model
-    sightengineForm.append('api_user', apiUser);
-    sightengineForm.append('api_secret', apiSecret);
-    sightengineForm.append('media', file);
-
-    // Call Sightengine API
-    const response = await fetch('https://api.sightengine.com/1.0/check.json', {
-      method: 'POST',
-      body: sightengineForm,
-    });
-
-    const data = await response.json();
-
-    if (data.status !== 'success') {
-      console.error("Sightengine Error:", data);
-      return NextResponse.json({ error: data.error?.message || 'API Error' }, { status: 500 });
-    }
-
-    // Process real Sightengine GenAI results
-    // data.type.ai_generated usually holds the confidence [0 to 1]
-    const aiGeneratedScore = data.type?.ai_generated ?? data.genai?.ai_generated ?? 0;
-    const confidencePercentage = Math.round(aiGeneratedScore * 100);
-
-    // Map into Clarifake's response format
-    const isSynthetic = confidencePercentage >= 60;
-    const isAuthentic = confidencePercentage <= 40;
-
-    const statusObj = isSynthetic 
-      ? { status: 'LIKELY SYNTHETIC', color: 'synthetic' as const, desc: 'High probability of AI manipulation detected by Sightengine.' }
-      : isAuthentic
-        ? { status: 'LIKELY AUTHENTIC', color: 'authentic' as const, desc: 'Signals are consistent with authentic human capture.' }
-        : { status: 'INCONCLUSIVE', color: 'inconclusive' as const, desc: 'Mixed signals detected. Cannot confirm authenticity.' };
-
-    const score = isSynthetic ? confidencePercentage : (100 - confidencePercentage);
-
-    const finalResponse: AnalysisResponse = {
-      id: data.request?.id || crypto.randomUUID(),
-      filename: file.name,
-      score: score, // Use the real confidence score mapped out of 100
-      ...statusObj,
-      signals: [
-        { 
-          name: "Generative AI Trace", 
-          val: confidencePercentage, 
-          status: isSynthetic ? "AI Patterns Detected" : "Natural", 
-          icon: "Activity" 
-        },
-        { 
-          name: "Source Verification", 
-          val: isAuthentic ? 90 : 30, 
-          status: source, 
-          icon: "LinkIcon" 
+    // 3. REVERSE IMAGE SEARCH via SerpApi (Google Lens)
+    let sources: any[] = [];
+    const serpApiKey = process.env.SERPAPI_KEY;
+    if (serpApiKey) {
+      try {
+        console.log("Uploading to catbox for reverse image search...");
+        const catboxForm = new FormData();
+        catboxForm.append('reqtype', 'fileupload');
+        catboxForm.append('fileToUpload', file);
+        
+        const catboxRes = await fetchWithRetry('https://catbox.moe/user/api.php', {
+          method: 'POST',
+          body: catboxForm
+        });
+        const catboxUrl = await catboxRes.text();
+        
+        if (catboxUrl && catboxUrl.startsWith('http')) {
+          console.log("Catbox URL:", catboxUrl);
+          console.log("Searching SerpApi...");
+          const serpRes = await fetchWithRetry(`https://serpapi.com/search.json?engine=google_lens&url=${encodeURIComponent(catboxUrl)}&api_key=${serpApiKey}`);
+          const serpData = await serpRes.json();
+          
+          if (serpData.visual_matches && serpData.visual_matches.length > 0) {
+            // Take top 3 sources
+            sources = serpData.visual_matches.slice(0, 3).map((match: any) => ({
+              sourceName: match.source,
+              type: "Visual Match",
+              snippet: match.title,
+              url: match.link
+            }));
+          }
         }
-      ],
-      supporting: isAuthentic ? ["Sightengine detected no synthetic artifacts"] : [],
-      caution: isSynthetic ? [`High synthetic confidence: ${confidencePercentage}%`, "AI model generation footprint detected"] : [],
-      metadata
+      } catch (serpError) {
+        console.error("SerpApi / Catbox Error:", serpError);
+      }
+    }
+
+    const summary = summarizeEvidence(samples, isVideo);
+    const evidence = samples.flatMap(sample => {
+      const suffix = isVideo ? ` @ ${sample.timestamp?.toFixed(2)}s` : '';
+      const combined = sample.signals.map(model => ({
+        name: `${sample.consensus ? (model.provider === 'Combined' ? 'Average ' : 'Available ') : ''}${model.name}${suffix}`,
+        val: model.score === null ? null : Math.round(model.score * 1000) / 10,
+        status: model.detail, icon: 'Activity',
+      }));
+      if (!sample.providerChecks) return combined;
+      const individual = [sample.providerChecks.sightengine,sample.providerChecks.hive].flatMap(provider => (['genai','deepfake'] as const).map(task=>({
+        name: `${provider.provider}: ${task === 'genai' ? 'AI-generation' : 'Face-manipulation'}${suffix}`,
+        val: provider[task] === null ? null : Math.round(provider[task]! * 1000) / 10,
+        status: `${provider.detail} Request: ${provider.requestId || 'unavailable'}.`, icon:'Activity',
+      })));
+      return [...combined,...individual];
+    });
+    const contextLimitations = ['OCR and visual matches are context, not manipulation proof. Reverse-image search may return similar or reposted media; it does not verify the original publisher.'];
+    const finalResponse = {
+      id: crypto.randomUUID(), timestamp: new Date().toISOString(),
+      filename: originalName, mediaType: isVideo ? 'video' : 'image', detectionSchemaVersion: 3,
+      score: summary.score, status: summary.status, color: summary.color,
+      desc: `${summary.completedChecks}/${summary.requestedChecks} model checks completed. ${summary.strongestModel ? `Strongest signal: ${summary.strongestModel}.` : 'No valid detection score available.'} Low signals do not prove authenticity.`,
+      assessment: summary, samples,
+      signals: [...evidence, { name: 'Source Verification', val: null, status: `${source} (filename hint only; origin not verified)`, icon: 'LinkIcon' }],
+      supporting: samples.flatMap(sample => sample.signals.filter(m => m.status === 'ok').map(m => `Sample ${sample.index}${isVideo ? ` at ${sample.timestamp?.toFixed(2)}s` : ''}: ${m.name} ${Math.round(m.score! * 1000) / 10}/100; ${sample.localDetector ? 'local model ' + sample.localDetector.model : 'provider request ' + (sample.requestId || 'not provided')}.`)),
+      caution: [...summary.limitations, ...samples.flatMap(s => s.qualityWarnings), ...contextLimitations],
+      metadata: { ...metadata, sourceHint: source, analysedSamples: String(samples.length), contextSample: isVideo ? `Middle sampled frame at ${file === files[0] ? timestamps[0] : timestamps[Math.floor(files.length / 2)]}s` : 'Uploaded image' },
+      extractedText: extractedText || undefined,
+      sources: sources.length > 0 ? sources : undefined,
     };
 
-    return NextResponse.json(finalResponse);
+    const aiReview = await additionalReview(finalResponse);
+    return NextResponse.json({ ...finalResponse, ...(aiReview ? { aiReview } : {}) });
+    });
 
   } catch (error: any) {
     console.error('Analysis error:', error);

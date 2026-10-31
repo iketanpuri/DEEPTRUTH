@@ -12,7 +12,7 @@ export function Footer() {
               <div className="bg-accent/10 p-1.5 rounded-lg border border-accent/20">
                 <Fingerprint className="w-5 h-5 text-accent" />
               </div>
-              <span className="font-bold tracking-widest text-lg">CLARIFAKE</span>
+              <span className="font-bold tracking-widest text-lg">DEEPTRUTH</span>
             </Link>
             <p className="text-foreground/60 text-sm max-w-sm font-medium mb-4 sm:mb-6">
               Know what&apos;s real. Before it spreads.
@@ -69,7 +69,7 @@ export function Footer() {
 
         <div className="border-t border-border/50 pt-6 sm:pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-foreground/40 text-center sm:text-left">
-            &copy; {new Date().getFullYear()} Clarifake. All rights reserved. (Demo Prototype)
+            &copy; {new Date().getFullYear()} DeepTruth. All rights reserved. (Demo Prototype)
           </p>
           <div className="flex gap-4 text-xs text-foreground/40">
             <Link href="/privacy" className="hover:text-white transition-colors py-2 touch-target">Terms of Service</Link>

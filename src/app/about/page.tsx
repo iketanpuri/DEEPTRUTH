@@ -29,7 +29,7 @@ export default function AboutPage() {
             If it takes five seconds to generate a deepfake, it shouldn&apos;t take a forensics lab five days to debunk it. We need scalable, accessible tools that can analyze digital content at the speed of the internet.
           </p>
           <p>
-            Clarifake was built to provide professional-grade multi-signal forensic analysis to anyone who needs to answer a simple question: <em>Is this real?</em>
+            DeepTruth was built to provide professional-grade multi-signal forensic analysis to anyone who needs to answer a simple question: <em>Is this real?</em>
           </p>
         </section>
 
@@ -40,7 +40,7 @@ export default function AboutPage() {
             Many existing security and verification platforms operate on a data-harvesting model. They keep what you upload, tying it to your identity, building profiles, and training future models on your private data.
           </p>
           <p>
-            We believe you shouldn&apos;t have to surrender your privacy to establish the truth. Clarifake is designed from the ground up to be stateless. We analyze the content, provide the verdict, and immediately discard the data.
+            We believe you shouldn&apos;t have to surrender your privacy to establish the truth. DeepTruth is designed from the ground up to be stateless. We analyze the content, provide the verdict, and immediately discard the data.
           </p>
         </section>
 

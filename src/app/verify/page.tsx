@@ -5,16 +5,25 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UploadCloud, FileVideo, FileImage, FileAudio, FileText, Link as LinkIcon, Lock, X, PlayCircle, ShieldCheck, Camera, ChevronRight, Activity, Search, AlertTriangle, FileCheck } from 'lucide-react';
 import clsx from 'clsx';
+import CameraCapture from '@/components/CameraCapture';
+import { prepareAudio } from '@/lib/prepare-audio';
 
 const CONTENT_TYPES = [
-  { id: 'text', label: 'Text/Claim', icon: FileText, accept: undefined },
-  { id: 'url', label: 'URL', icon: LinkIcon, accept: undefined },
-  { id: 'image', label: 'Image', icon: FileImage, accept: 'image/*' },
+  { id: 'image', label: 'Image', icon: FileImage, accept: 'image/jpeg,image/png,image/webp' },
   { id: 'video', label: 'Video', icon: FileVideo, accept: 'video/*' },
-  { id: 'audio', label: 'Audio', icon: FileAudio, accept: 'audio/*' },
+  { id: 'audio', label: 'Audio', icon: FileAudio, accept: 'audio/*,.wav,.mp3,.m4a,.ogg,.flac,.webm' },
 ];
 
 // Investigation sequence steps based on user's hackathon prompt
+const MEDIA_STEPS = [
+  { id: 1, label: 'Preparing media', icon: FileCheck },
+  { id: 2, label: 'Sampling visual evidence', icon: FileVideo },
+  { id: 3, label: 'Running models and source checks', icon: Activity },
+  { id: 4, label: 'Reviewing returned evidence', icon: Search },
+  { id: 5, label: 'Recording limitations', icon: AlertTriangle },
+  { id: 6, label: 'Report ready', icon: ShieldCheck },
+];
+
 const VERIFICATION_STEPS = [
   { id: 1, label: "Extracting claims", icon: FileText },
   { id: 2, label: "Finding relevant sources", icon: Search },
@@ -26,21 +35,41 @@ const VERIFICATION_STEPS = [
 
 export default function VerifyPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('text');
+  const [activeTab, setActiveTab] = useState('image');
   const [uploadState, setUploadState] = useState<'idle' | 'ready' | 'analyzing'>('idle');
   const [progress, setProgress] = useState(0);
   const [activeStep, setActiveStep] = useState(0);
   
   const [textContent, setTextContent] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState('');
+  useEffect(() => {
+    if (!selectedFile?.type.startsWith('image/')) { setImagePreview(''); return; }
+    const url = URL.createObjectURL(selectedFile); setImagePreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
   
+  const [audioPreview, setAudioPreview] = useState('');
+  useEffect(() => {
+    if (activeTab !== 'audio' || !selectedFile) { setAudioPreview(''); return; }
+    const url = URL.createObjectURL(selectedFile); setAudioPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile, activeTab]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const requestRunning = useRef(false);
 
   const activeType = CONTENT_TYPES.find(t => t.id === activeTab);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (uploadState === 'analyzing') return;
+      const valid = activeTab === 'audio' ? (file.type.startsWith('audio/') || /\.(wav|mp3|m4a|ogg|flac|webm)$/i.test(file.name)) : activeTab === 'video' ? file.type.startsWith('video/') : ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
+      const limit = activeTab === 'audio' ? 20 : activeTab === 'video' ? 50 : 10;
+      if (!valid || !file.size || file.size > limit * 1024 * 1024) {
+        alert(`Choose a supported ${activeTab} file up to ${limit} MB. Audio must contain 2–30 seconds of speech.`); return;
+      }
       setSelectedFile(file);
       setTextContent('');
       setUploadState('ready');
@@ -55,58 +84,47 @@ export default function VerifyPage() {
     setUploadState('ready');
   };
 
-  // Video frame extraction logic retained to ensure media forensics works
-  const extractVideoFrame = (file: File): Promise<File> => {
-    return new Promise((resolve, reject) => {
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      video.playsInline = true;
-      video.muted = true;
-      const url = URL.createObjectURL(file);
-      video.src = url;
-
-      video.onloadedmetadata = () => {
-        video.currentTime = Math.min(1, video.duration / 2);
-      };
-
-      video.onseeked = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return reject(new Error('Failed to get canvas context'));
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((blob) => {
-          if (blob) resolve(new File([blob], `frame_${file.name}.jpg`, { type: 'image/jpeg' }));
-          else reject(new Error('Failed to extract frame blob'));
-        }, 'image/jpeg', 0.9);
-      };
-      video.onerror = () => reject(new Error('Error loading video file'));
+  // Three representative visual samples; this is not full-video temporal analysis.
+  const extractVideoFrames = async (file: File): Promise<{ files: File[]; timestamps: number[] }> => {
+    const video = document.createElement('video');
+    video.muted = true; video.playsInline = true; video.preload = 'auto';
+    const url = URL.createObjectURL(file);
+    const wait = (event: 'loadeddata' | 'seeked') => new Promise<void>((resolve, reject) => {
+      const cleanup = () => { clearTimeout(timer); video.removeEventListener(event, done); video.removeEventListener('error', fail); };
+      const done = () => { cleanup(); resolve(); };
+      const fail = () => { cleanup(); reject(new Error('Video could not be decoded. Try a browser-playable MP4.')); };
+      const timer = setTimeout(fail, 15000);
+      video.addEventListener(event, done, { once: true }); video.addEventListener('error', fail, { once: true });
     });
+    try {
+      const ready = wait('loadeddata'); video.src = url; await ready;
+      if (!Number.isFinite(video.duration) || video.duration < 0.5 || video.duration > 86400) throw new Error('Choose a video between 0.5 seconds and 24 hours.');
+      const timestamps = [0.15, 0.5, 0.85].map(f => f * video.duration);
+      const files: File[] = [];
+      for (let i = 0; i < timestamps.length; i++) {
+        const seeked = wait('seeked'); video.currentTime = timestamps[i]; await seeked;
+        const canvas = document.createElement('canvas');
+        const scale = Math.min(1, 1920 / Math.max(video.videoWidth, video.videoHeight));
+        canvas.width = Math.round(video.videoWidth * scale); canvas.height = Math.round(video.videoHeight * scale);
+        const ctx = canvas.getContext('2d'); if (!ctx) throw new Error('Could not extract frame.');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+        if (!blob) throw new Error('Could not encode frame.');
+        files.push(new File([blob], `frame-${i + 1}.jpg`, { type: 'image/jpeg' }));
+      }
+      return { files, timestamps };
+    } finally { video.removeAttribute('src'); video.load(); URL.revokeObjectURL(url); }
   };
 
   const startAnalysis = async () => {
+    if (requestRunning.current) return;
+    requestRunning.current = true;
     setUploadState('analyzing');
     setProgress(0);
     setActiveStep(1);
 
-    // Simulated progress logic for the animated right pane
-    const totalDuration = 12000; // 12 seconds for full verification
-    const intervalTime = 200;
-    const increment = (100 / (totalDuration / intervalTime));
-
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        const next = prev + increment;
-        if (next < 100) return next;
-        return 100;
-      });
-    }, intervalTime);
-
-    const stepInterval = setInterval(() => {
-      setActiveStep(prev => prev < 6 ? prev + 1 : prev);
-    }, totalDuration / 6);
-
+    // Milestones, not fabricated percentages of provider execution.
+    setProgress(10);
     try {
       let finalResultData;
 
@@ -118,20 +136,26 @@ export default function VerifyPage() {
           body: JSON.stringify({ content: textContent, type: activeTab })
         });
         
-        if (!response.ok) throw new Error('Verification pipeline failed');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.error || 'Verification pipeline failed');
+        }
         finalResultData = await response.json();
 
       } else {
         // Media Upload Flow
         const formData = new FormData();
-        let fileToSend = selectedFile;
-        if (selectedFile && selectedFile.type.startsWith('video/')) {
-           fileToSend = await extractVideoFrame(selectedFile);
-        }
-        if (fileToSend) formData.append('file', fileToSend);
-        formData.append('type', activeTab);
-
-        const response = await fetch('/api/analyze', { method: 'POST', body: formData });
+        if (!selectedFile) throw new Error('Choose a file first.');
+        setActiveStep(2);
+        const video = activeTab === 'video';
+        const audio = activeTab === 'audio';
+        const batch = audio ? { files: [await prepareAudio(selectedFile)], timestamps: [] } : video ? await extractVideoFrames(selectedFile) : { files: [selectedFile], timestamps: [] };
+        batch.files.forEach(file => formData.append('file', file));
+        formData.append('type', video ? 'video' : 'image');
+        formData.append('timestamps', JSON.stringify(batch.timestamps));
+        formData.append('originalName', selectedFile.name);
+        setProgress(35); setActiveStep(3);
+        const response = await fetch(audio ? '/api/analyze-audio' : '/api/analyze', { method: 'POST', body: formData, signal: AbortSignal.timeout(180000) });
         if (!response.ok) {
           const errorData = await response.json().catch(() => null);
           throw new Error(errorData?.error || 'Media analysis failed. The API might be blocked by your ISP.');
@@ -139,8 +163,6 @@ export default function VerifyPage() {
         finalResultData = await response.json();
       }
 
-      clearInterval(progressInterval);
-      clearInterval(stepInterval);
       setProgress(100);
       setActiveStep(6);
 
@@ -153,11 +175,9 @@ export default function VerifyPage() {
 
     } catch (err: any) {
       console.error(err);
-      clearInterval(progressInterval);
-      clearInterval(stepInterval);
       setUploadState('idle');
       alert(err.message || 'Verification failed. Please try again.');
-    }
+    } finally { requestRunning.current = false; }
   };
 
   const cancelUpload = () => {
@@ -172,7 +192,7 @@ export default function VerifyPage() {
       <div className="mb-10 text-center sm:text-left">
         <h1 className="text-4xl font-extrabold mb-3 tracking-tight font-['Chakra_Petch',sans-serif]">Live Verification Engine</h1>
         <p className="text-foreground/60 max-w-2xl text-lg">
-          Upload media or paste a claim. Clarifake will extract context, cross-reference sources, and build an explainable evidence timeline.
+          Upload media or paste a claim. DeepTruth will extract context, cross-reference sources, and build an explainable evidence timeline.
         </p>
       </div>
 
@@ -186,11 +206,13 @@ export default function VerifyPage() {
               Input Source
             </h2>
             
+            <p className="text-xs text-foreground/50 mb-4">Checks fully AI-generated images and identity-level face manipulations. Video checks 3 sampled frames; its soundtrack and motion are not analysed. Audio checks 2–30 second speech clips locally for synthetic-voice signals. Two model checks per image; six per video use provider quota.</p>
             {/* Tabs */}
             <div className="flex flex-wrap gap-2 mb-6">
               {CONTENT_TYPES.map((type) => (
                 <button
                   key={type.id}
+                  disabled={uploadState === 'analyzing'}
                   onClick={() => { setActiveTab(type.id); cancelUpload(); }}
                   className={clsx(
                     "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border",
@@ -205,6 +227,7 @@ export default function VerifyPage() {
               ))}
             </div>
 
+            {activeTab === 'image' && <CameraCapture disabled={uploadState === 'analyzing'} onCapture={file => { setSelectedFile(file); setTextContent(''); setUploadState('ready'); }}/>}
             {/* Input Area */}
             <div className="flex-grow flex flex-col justify-center">
               {uploadState === 'idle' ? (
@@ -240,7 +263,7 @@ export default function VerifyPage() {
                           <UploadCloud className="w-8 h-8 text-accent" />
                         </div>
                         <h3 className="text-lg font-bold mb-1">Upload {activeType?.label}</h3>
-                        <p className="text-foreground/50 text-sm mb-4 text-center">Drag and drop or click to browse</p>
+                        <p className="text-foreground/50 text-sm mb-4 text-center">{activeTab === 'audio' ? 'Speech clips: 2–30 seconds · up to 20 MB · WAV, MP3, M4A and browser-supported audio' : 'Click to browse · images ≤10 MB · videos ≤50 MB'}</p>
                         <input
                           ref={fileInputRef}
                           type="file"
@@ -262,6 +285,8 @@ export default function VerifyPage() {
                     <X className="w-5 h-5" />
                   </button>
                   <div className="flex flex-col items-center text-center gap-4">
+                    {audioPreview && <audio controls preload="metadata" src={audioPreview} className="w-full" aria-label="Selected speech clip"/>}
+                    {imagePreview && <img src={imagePreview} alt="Photo selected for verification" className="w-full max-h-48 object-contain rounded-lg"/>}
                     <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center border border-accent/30 shadow-[0_0_15px_rgba(244,183,64,0.2)]">
                       <ShieldCheck className="w-8 h-8 text-accent" />
                     </div>
@@ -339,7 +364,14 @@ export default function VerifyPage() {
                   <div className="flex flex-col gap-6 relative">
                     <div className="absolute left-[15px] top-4 bottom-4 w-px bg-[#2B2639] z-0"></div>
                     
-                    {VERIFICATION_STEPS.map((step, index) => {
+                    {(activeTab === 'audio' ? [
+                      { id: 1, label: 'Preparing speech clip', icon: FileAudio },
+                      { id: 2, label: 'Decoding and resampling audio', icon: Activity },
+                      { id: 3, label: 'Running local voice detector', icon: Activity },
+                      { id: 4, label: 'Reviewing window scores', icon: Search },
+                      { id: 5, label: 'Checking recording quality', icon: AlertTriangle },
+                      { id: 6, label: 'Report ready', icon: ShieldCheck },
+                    ] : VERIFICATION_STEPS).map((step, index) => {
                       const isActive = activeStep === step.id;
                       const isComplete = activeStep > step.id || progress === 100;
                       const isPending = activeStep < step.id;

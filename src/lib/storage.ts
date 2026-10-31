@@ -11,14 +11,32 @@ export type VerificationResult = {
   type: 'text' | 'media';
 };
 
-export const STORAGE_KEY = 'clarifake_history';
+export const STORAGE_KEY = 'deeptruth_history';
+
+// Preserve same-origin history across an application rename without retaining old branding.
+function readStoredHistory(): VerificationResult[] {
+  const current = localStorage.getItem(STORAGE_KEY);
+  if (current) return JSON.parse(current);
+  for (let index = 0; index < localStorage.length; index++) {
+    const key = localStorage.key(index);
+    if (!key || key === STORAGE_KEY || !key.endsWith('_history')) continue;
+    try {
+      const records: unknown = JSON.parse(localStorage.getItem(key) || 'null');
+      if (!Array.isArray(records) || !records.every(item => item && typeof item.id === 'string' && typeof item.verdict === 'string' && typeof item.timestamp === 'string' && (item.type === 'text' || item.type === 'media'))) continue;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      localStorage.removeItem(key);
+      return records;
+    } catch { /* Leave unrelated or invalid storage untouched. */ }
+  }
+  return [];
+}
+
 
 export function saveToHistory(result: any) {
   if (typeof window === 'undefined') return;
   
   try {
-    const existingStr = localStorage.getItem(STORAGE_KEY);
-    const existing: VerificationResult[] = existingStr ? JSON.parse(existingStr) : [];
+    const existing = readStoredHistory();
     
     // Don't save duplicates
     if (existing.find(item => item.id === result.id)) return;
@@ -27,7 +45,7 @@ export function saveToHistory(result: any) {
       id: result.id,
       timestamp: result.timestamp || new Date().toISOString(),
       verdict: result.verdict || result.status,
-      evidenceScore: result.evidenceScore || result.score,
+      evidenceScore: result.evidenceScore ?? result.score,
       originalContent: result.originalContent,
       filename: result.filename,
       type: result.claimsAnalyzed ? 'text' : 'media'
@@ -43,8 +61,7 @@ export function saveToHistory(result: any) {
 export function getHistory(): VerificationResult[] {
   if (typeof window === 'undefined') return [];
   try {
-    const existingStr = localStorage.getItem(STORAGE_KEY);
-    return existingStr ? JSON.parse(existingStr) : [];
+    return readStoredHistory();
   } catch {
     return [];
   }

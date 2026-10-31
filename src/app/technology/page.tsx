@@ -39,7 +39,7 @@ export default function TechnologyPage() {
           
           {/* Preprocessing steps — Responsive grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 w-full">
-            {['MEDIA PREPROCESSING', 'FRAME EXTRACTION', 'AUDIO SEPARATION', 'METADATA PARSING'].map((step, i) => (
+            {['MEDIA PREPROCESSING', 'FRAME EXTRACTION', 'QUALITY CHECKS', 'METADATA PARSING'].map((step, i) => (
               <div key={i} className="px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg border border-border/50 bg-surface/50 text-[8px] sm:text-[10px] font-mono text-foreground/60 flex items-center justify-center text-center leading-tight">
                 {step}
               </div>
@@ -63,11 +63,11 @@ export default function TechnologyPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-8 w-full max-w-2xl">
             <div className="p-3 sm:p-4 rounded-lg border border-border bg-surface/30">
               <div className="text-[10px] sm:text-xs font-bold mb-1 sm:mb-2">HEURISTIC ENGINE</div>
-              <div className="text-[9px] sm:text-[10px] text-foreground/50 leading-relaxed">Rule-based metadata checks, C2PA validation, and compression analysis.</div>
+              <div className="text-[9px] sm:text-[10px] text-foreground/50 leading-relaxed">Resolution and low-detail heuristics, plus SHA-256 fingerprints of the analysed samples.</div>
             </div>
             <div className="p-3 sm:p-4 rounded-lg border border-border bg-surface/30">
               <div className="text-[10px] sm:text-xs font-bold mb-1 sm:mb-2">ML INFERENCE ENGINE</div>
-              <div className="text-[9px] sm:text-[10px] text-foreground/50 leading-relaxed">Spectral classifiers, temporal consistency models, and audio/video sync networks.</div>
+              <div className="text-[9px] sm:text-[10px] text-foreground/50 leading-relaxed">AI-generation and face-manipulation classifiers; visual sample and quality checks.</div>
             </div>
           </div>
           
@@ -99,14 +99,14 @@ export default function TechnologyPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
-          { title: "FFmpeg", desc: "For robust media preprocessing and frame extraction.", icon: Code2 },
-          { title: "Stateless APIs", desc: "Ensuring no data persistence during inference.", icon: Server },
-          { title: "C2PA Validation", desc: "Checking hardware-signed provenance manifests.", icon: ShieldAlert },
-          { title: "Transformers", desc: "For text and multimodal consistency analysis.", icon: Layers },
-          { title: "Audio Forensics", desc: "Detecting vocoder artifacts in synthetic speech.", icon: Workflow },
-          { title: "Spatial Analysis", desc: "Detecting edge blending and cloning artifacts.", icon: Search },
-          { title: "Temporal Modeling", desc: "Using RNNs to find unnatural motion patterns.", icon: Cpu },
-          { title: "Explainable AI", desc: "Mapping model activations to human-readable evidence.", icon: Braces },
+          { title: "Browser Canvas", desc: "Extracts three visual samples from browser-playable videos.", icon: Code2 },
+          { title: "Provider APIs", desc: "Server-side calls to Sightengine, OCR.Space, and SerpApi; provider policies apply.", icon: Server },
+          { title: "Sample Fingerprints", desc: "SHA-256 identifies analysed bytes; it does not certify origin.", icon: ShieldAlert },
+          { title: "OCR & Search", desc: "Extracts image text and retrieves visual source matches.", icon: Layers },
+          { title: "Image Quality", desc: "Resolution and low-detail warnings; audio is not analysed.", icon: Workflow },
+          { title: "Face Manipulation", desc: "Provider confidence for identity-level face swaps; no localized heatmap.", icon: Search },
+          { title: "Video Sampling", desc: "Three timestamped visual samples; no temporal or lip-sync model.", icon: Cpu },
+          { title: "Inspectable Report", desc: "Task-specific model outputs, checked samples, fingerprints, and limitations.", icon: Braces },
         ].map((tech, i) => (
           <div key={i} className="glass-card p-4 sm:p-5">
             <tech.icon className="w-5 h-5 text-accent mb-2 sm:mb-3" />

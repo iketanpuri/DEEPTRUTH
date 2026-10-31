@@ -65,7 +65,7 @@
   width: 24px; height: 24px; border-radius: 6px; background: linear-gradient(135deg, var(--real), var(--fake));
   position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
 }
-.landingPage .logo-mark::after { content: "C"; font-family: var(--display); font-weight: 700; font-size: 14px; color: var(--ink); line-height: 1; }
+.landingPage .logo-mark::after { content: "D"; font-family: var(--display); font-weight: 700; font-size: 14px; color: var(--ink); line-height: 1; }
 .landingPage .blink-cursor { color: var(--real); animation: blink 1s step-end infinite; margin-left: 2px; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 

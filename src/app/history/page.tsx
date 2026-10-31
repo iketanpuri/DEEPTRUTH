@@ -23,11 +23,13 @@ export default function HistoryPage() {
     switch (verdict) {
       case 'VERIFIED':
       case 'LIKELY AUTHENTIC':
+      case 'LOW MANIPULATION SIGNAL':
         return 'text-[#10b981] bg-[#10b981]/10 border-[#10b981]/20';
       case 'PARTIALLY VERIFIED':
         return 'text-[#f59e0b] bg-[#f59e0b]/10 border-[#f59e0b]/20';
       case 'LIKELY MISLEADING':
       case 'LIKELY SYNTHETIC':
+      case 'MANIPULATION SIGNAL DETECTED':
         return 'text-[#ef4444] bg-[#ef4444]/10 border-[#ef4444]/20';
       default:
         return 'text-[#8b5cf6] bg-[#8b5cf6]/10 border-[#8b5cf6]/20';
@@ -38,11 +40,13 @@ export default function HistoryPage() {
     switch (verdict) {
       case 'VERIFIED':
       case 'LIKELY AUTHENTIC':
+      case 'LOW MANIPULATION SIGNAL':
         return <ShieldCheck className="w-4 h-4" />;
       case 'PARTIALLY VERIFIED':
         return <Activity className="w-4 h-4" />;
       case 'LIKELY MISLEADING':
       case 'LIKELY SYNTHETIC':
+      case 'MANIPULATION SIGNAL DETECTED':
         return <AlertTriangle className="w-4 h-4" />;
       default:
         return <AlertCircle className="w-4 h-4" />;
@@ -98,7 +102,7 @@ export default function HistoryPage() {
               )}
               
               <div className="mt-4 pt-4 border-t border-border flex justify-between items-center text-xs">
-                <span className="text-foreground/50">Score: <span className="text-white font-mono">{item.evidenceScore || 0}/100</span></span>
+                <span className="text-foreground/50">Score: <span className="text-white font-mono">{typeof item.evidenceScore === 'number' ? `${item.evidenceScore}/100` : 'Unavailable'}</span></span>
                 <span className="text-accent group-hover:underline">View Report →</span>
               </div>
             </Link>

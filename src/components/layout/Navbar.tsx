@@ -116,10 +116,10 @@ export function Navbar() {
               .animate-custom-blink { animation: custom-blink 1s step-end infinite; }
             `}</style>
             <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#F4B740] to-[#FF5470] relative flex-shrink-0 flex items-center justify-center">
-              <span className="font-bold text-sm text-[#1E1C28] leading-none" style={{ fontFamily: "'Chakra Petch', sans-serif" }}>C</span>
+              <span className="font-bold text-sm text-[#1E1C28] leading-none" style={{ fontFamily: "'Chakra Petch', sans-serif" }}>D</span>
             </div>
             <div className="font-bold text-[18px] tracking-[0.2px] flex items-center text-white" style={{ fontFamily: "'Chakra Petch', sans-serif" }}>
-              Clarifake<span className="text-[#F4B740] ml-[2px] animate-custom-blink">_</span>
+              DeepTruth<span className="text-[#F4B740] ml-[2px] animate-custom-blink">_</span>
             </div>
           </Link>
 
@@ -185,10 +185,10 @@ export function Navbar() {
             <div className="flex items-center justify-between p-4 sm:p-6">
               <Link href="/" className="flex items-center gap-2 touch-target" onClick={() => setMobileMenuOpen(false)}>
                 <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#F4B740] to-[#FF5470] relative flex-shrink-0 flex items-center justify-center">
-                  <span className="font-bold text-sm text-[#1E1C28] leading-none" style={{ fontFamily: "'Chakra Petch', sans-serif" }}>C</span>
+                  <span className="font-bold text-sm text-[#1E1C28] leading-none" style={{ fontFamily: "'Chakra Petch', sans-serif" }}>D</span>
                 </div>
                 <div className="font-bold text-[18px] tracking-[0.2px] flex items-center text-white" style={{ fontFamily: "'Chakra Petch', sans-serif" }}>
-                  Clarifake<span className="text-[#F4B740] ml-[2px] animate-custom-blink">_</span>
+                  DeepTruth<span className="text-[#F4B740] ml-[2px] animate-custom-blink">_</span>
                 </div>
               </Link>
               <button

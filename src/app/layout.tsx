@@ -20,7 +20,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "CLARIFAKE | Know what's real.",
+  title: "DEEPTRUTH | Know what's real.",
   description: "AI-powered content authenticity platform.",
 };
 

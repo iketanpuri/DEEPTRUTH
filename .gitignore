@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local audio runtime and model weights
+/.audio-models/
+/.venv-audio*/
+__pycache__/
+
+/.image-models/

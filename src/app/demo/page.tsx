@@ -88,7 +88,7 @@ export default function DemoPage() {
 
   const runDemo = (demoData: any) => {
     // 1. Save to session storage so the results page can read it
-    sessionStorage.setItem('analysisResult', JSON.stringify(demoData));
+    sessionStorage.setItem('analysisResult', JSON.stringify({ ...demoData, isDemo: true }));
     
     // 2. Save to persistent history so judges see it in the dashboard
     saveToHistory(demoData);
@@ -100,7 +100,7 @@ export default function DemoPage() {
   return (
     <div className="container mx-auto max-w-5xl px-4 pt-24 pb-12 min-h-screen">
       <div className="mb-12 text-center">
-        <div className="inline-block px-3 py-1 bg-accent text-black text-[10px] font-bold uppercase tracking-widest rounded mb-4">Hackathon Demo Mode</div>
+        <div className="inline-block px-3 py-1 bg-accent text-black text-[10px] font-bold uppercase tracking-widest rounded mb-4">Illustrative Demo Data</div>
         <h1 className="text-4xl font-extrabold tracking-tight mb-4 font-['Chakra_Petch',sans-serif]">Interactive Verification Demos</h1>
         <p className="text-foreground/60 max-w-2xl mx-auto">
           These deterministic demos are pre-processed to guarantee a flawless live presentation. 
@@ -124,7 +124,7 @@ export default function DemoPage() {
               onClick={() => runDemo(demo.data)}
               className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 ${demo.bg} ${demo.color} border border-transparent hover:${demo.border} transition-colors relative z-10`}
             >
-              <Play className="w-4 h-4 fill-current" /> Run Demo Analysis
+              <Play className="w-4 h-4 fill-current" /> View Preset Demo
             </button>
           </div>
         ))}

@@ -26,9 +26,9 @@ export default function DashboardPage() {
         total: data.length,
         text: data.filter(d => d.type === 'text').length,
         media: data.filter(d => d.type === 'media').length,
-        verified: data.filter(d => d.verdict === 'VERIFIED' || d.verdict === 'LIKELY AUTHENTIC').length,
-        misleading: data.filter(d => d.verdict === 'LIKELY MISLEADING' || d.verdict === 'LIKELY SYNTHETIC').length,
-        unverified: data.filter(d => d.verdict === 'UNVERIFIED' || d.verdict === 'PARTIALLY VERIFIED' || d.verdict === 'INCONCLUSIVE').length,
+        verified: data.filter(d => d.verdict === 'VERIFIED' || d.verdict === 'LIKELY AUTHENTIC' || d.verdict === 'LOW MANIPULATION SIGNAL').length,
+        misleading: data.filter(d => d.verdict === 'LIKELY MISLEADING' || d.verdict === 'LIKELY SYNTHETIC' || d.verdict === 'MANIPULATION SIGNAL DETECTED').length,
+        unverified: data.filter(d => d.verdict === 'UNVERIFIED' || d.verdict === 'PARTIALLY VERIFIED' || d.verdict === 'INCONCLUSIVE' || d.verdict === 'ANALYSIS UNAVAILABLE').length,
         avgScore: Math.round(data.reduce((acc, curr) => acc + (curr.evidenceScore || 0), 0) / data.length)
       });
     }
@@ -48,11 +48,11 @@ export default function DashboardPage() {
           <div className="text-3xl font-bold">{stats.total}</div>
         </div>
         <div className="glass-card p-5 border-l-2 border-l-[#10b981] bg-[#10b981]/5">
-          <div className="text-[#10b981] text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2"><ShieldCheck className="w-3 h-3"/> Verified</div>
+          <div className="text-[#10b981] text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2"><ShieldCheck className="w-3 h-3"/> Low signal / verified claims</div>
           <div className="text-3xl font-bold text-[#10b981]">{stats.verified}</div>
         </div>
         <div className="glass-card p-5 border-l-2 border-l-[#ef4444] bg-[#ef4444]/5">
-          <div className="text-[#ef4444] text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2"><AlertTriangle className="w-3 h-3"/> Misleading</div>
+          <div className="text-[#ef4444] text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2"><AlertTriangle className="w-3 h-3"/> Flagged signals / claims</div>
           <div className="text-3xl font-bold text-[#ef4444]">{stats.misleading}</div>
         </div>
         <div className="glass-card p-5 border-l-2 border-l-accent bg-accent/5">

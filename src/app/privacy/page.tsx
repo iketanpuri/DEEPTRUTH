@@ -19,7 +19,7 @@ export default function PrivacyPage() {
 
       {/* Visual Flow */}
       <div className="glass-panel p-4 sm:p-8 md:p-12 lg:p-16 mb-12 sm:mb-16 md:mb-24 text-center">
-        <div className="text-[10px] sm:text-xs font-bold tracking-widest text-foreground/50 mb-8 sm:mb-12">THE CLARIFAKE PRIVACY ARCHITECTURE</div>
+        <div className="text-[10px] sm:text-xs font-bold tracking-widest text-foreground/50 mb-8 sm:mb-12">THE DEEPTRUTH PRIVACY ARCHITECTURE</div>
         
         <div className="flex flex-col md:flex-row items-center justify-center gap-3 sm:gap-4 md:gap-6 lg:gap-8 relative">
           
@@ -71,7 +71,7 @@ export default function PrivacyPage() {
             <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-surface border-red-500/20 border-dashed flex items-center justify-center mb-3 sm:mb-4 relative bg-background">
               <Database className="w-5 sm:w-6 h-5 sm:h-6 text-red-500/60" />
             </div>
-            <div className="text-[10px] sm:text-xs md:text-sm font-bold tracking-wide text-red-500/80">CONTENT DISCARDED</div>
+            <div className="text-[10px] sm:text-xs md:text-sm font-bold tracking-wide text-red-500/80">EXTERNAL PROVIDER POLICIES APPLY</div>
           </div>
         </div>
       </div>
@@ -79,9 +79,9 @@ export default function PrivacyPage() {
       {/* Pillars */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
         {[
-          { title: "No Account", desc: "Core verification works completely anonymously without requiring a login or email address.", icon: UserX },
-          { title: "No Content Retention", desc: "Uploaded media is analyzed in memory and permanently deleted immediately after the session.", icon: Database },
-          { title: "No User Profiling", desc: "We don't track what you verify or build profiles based on your verification history.", icon: Fingerprint },
+          { title: "No Account", desc: "The application requires no end-user login. Media is sent through server-side provider accounts; providers apply their own policies.", icon: UserX },
+          { title: "Clear Data Flow", desc: "Detection uses Sightengine. OCR uses OCR.Space. Reverse lookup uploads the image or representative frame to Catbox as a public file, then queries SerpApi. External retention is controlled by those providers.", icon: Database },
+          { title: "No User Profiling", desc: "Report summaries stay in browser local storage until history is cleared. Current reports and thumbnails are stored in tab session storage. No application-level server media archive is created.", icon: Fingerprint },
           { title: "Transparent Analysis", desc: "You see exactly which checks were performed and what evidence led to the verdict.", icon: Eye },
         ].map((item, i) => (
           <div key={i} className="glass-card p-5 sm:p-6 md:p-8 flex flex-col gap-3 sm:gap-4">

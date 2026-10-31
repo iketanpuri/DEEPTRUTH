@@ -49,7 +49,7 @@ export async function searchWeb(query: string): Promise<SearchResult[]> {
     console.error("Web Search Error:", error);
     // Return a graceful failure state
     return [{
-        sourceName: "Clarifake Fallback Source",
+        sourceName: "DeepTruth Fallback Source",
         url: "#",
         type: "Unknown",
         snippet: "Live search is temporarily unavailable. Proceeding with intrinsic analysis."
