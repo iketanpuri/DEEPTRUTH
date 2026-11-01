@@ -189,35 +189,37 @@ export default function VerifyPage() {
 
   return (
     <div className="container mx-auto max-w-7xl px-4 pt-24 pb-12 min-h-[90vh] flex flex-col">
-      <div className="mb-10 text-center sm:text-left">
-        <h1 className="text-4xl font-extrabold mb-3 tracking-tight font-['Chakra_Petch',sans-serif]">Live Verification Engine</h1>
+      <div className="mb-8 text-center sm:text-left">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent mb-3">DeepTruth / Media verification</p>
+        <h1 className="text-3xl sm:text-4xl font-extrabold mb-3 tracking-tight font-['Chakra_Petch',sans-serif]">Check before you trust.</h1>
         <p className="text-foreground/60 max-w-2xl text-lg">
-          Upload media or paste a claim. DeepTruth will extract context, cross-reference sources, and build an explainable evidence timeline.
+          Upload an image, video or speech clip. Review the detection signals, supporting evidence and what needs a closer look.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-grow">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
         
         {/* LEFT PANE: Input Section */}
         <div className="lg:col-span-5 flex flex-col gap-6">
-          <div className="glass-panel p-6 rounded-2xl border border-border shadow-2xl flex-grow flex flex-col">
+          <div className="glass-panel p-5 sm:p-7 rounded-2xl border border-border shadow-2xl flex-grow flex flex-col">
             <h2 className="text-xl font-bold mb-6 font-['Chakra_Petch',sans-serif] flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-              Input Source
+              Choose your media
             </h2>
             
-            <p className="text-xs text-foreground/50 mb-4">Checks fully AI-generated images and identity-level face manipulations. Video checks 3 sampled frames; its soundtrack and motion are not analysed. Audio checks 2–30 second speech clips locally for synthetic-voice signals. Two model checks per image; six per video use provider quota.</p>
+            <p className="text-sm leading-relaxed text-foreground/55 mb-5">{activeTab === 'audio' ? 'Use clear talking without music. Local analysis checks for synthetic-voice signals.' : activeTab === 'video' ? 'Three sampled frames are checked for visual manipulation. Soundtrack and motion are not analysed.' : 'Check for AI-generated imagery and facial manipulation, with supporting source context when available.'}</p>
             {/* Tabs */}
-            <div className="flex flex-wrap gap-2 mb-6">
+            <div className="grid grid-cols-3 gap-1.5 p-1.5 mb-5 rounded-xl bg-black/20 border border-border/70">
               {CONTENT_TYPES.map((type) => (
                 <button
                   key={type.id}
+                  aria-pressed={activeTab === type.id}
                   disabled={uploadState === 'analyzing'}
                   onClick={() => { setActiveTab(type.id); cancelUpload(); }}
                   className={clsx(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border",
+                    "flex items-center justify-center gap-2 px-2 py-3 rounded-lg text-sm font-semibold transition-colors border focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-50",
                     activeTab === type.id 
-                      ? "bg-accent/10 border-accent text-white" 
+                      ? "bg-accent/15 border-accent/50 text-white shadow-sm"
                       : "bg-surface/50 border-transparent text-foreground/60 hover:bg-surface hover:text-white"
                   )}
                 >
@@ -257,13 +259,17 @@ export default function VerifyPage() {
                     ) : (
                       <div 
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full aspect-square max-h-64 border-2 border-dashed border-border/60 rounded-xl flex flex-col items-center justify-center p-6 cursor-pointer hover:border-accent/50 hover:bg-accent/5 transition-all group relative overflow-hidden bg-[#0B0A10]"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Choose ${activeType?.label?.toLowerCase()} file`}
+                        onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInputRef.current?.click(); } }}
+                        className="w-full min-h-64 border-2 border-dashed border-accent/25 rounded-2xl focus-visible:outline-2 focus-visible:outline-accent flex flex-col items-center justify-center p-6 cursor-pointer hover:border-accent/50 hover:bg-accent/5 transition-all group relative overflow-hidden bg-[#0B0A10]"
                       >
-                        <div className="bg-surface p-4 rounded-full mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                        <div className="bg-accent/10 border border-accent/20 p-4 rounded-2xl mb-4 group-hover:scale-110 transition-transform shadow-lg">
                           <UploadCloud className="w-8 h-8 text-accent" />
                         </div>
-                        <h3 className="text-lg font-bold mb-1">Upload {activeType?.label}</h3>
-                        <p className="text-foreground/50 text-sm mb-4 text-center">{activeTab === 'audio' ? 'Speech clips: 2–30 seconds · up to 20 MB · WAV, MP3, M4A and browser-supported audio' : 'Click to browse · images ≤10 MB · videos ≤50 MB'}</p>
+                        <h3 className="text-lg font-bold mb-2">Choose {activeType?.label?.toLowerCase()} file</h3>
+                        <p className="text-foreground/50 text-sm mb-4 text-center">{activeTab === 'audio' ? '2–30 seconds · up to 20 MB · WAV, MP3 or M4A' : activeTab === 'video' ? 'Video file · up to 50 MB' : 'JPG, PNG or WebP · up to 10 MB'}</p>
                         <input
                           ref={fileInputRef}
                           type="file"
@@ -281,27 +287,27 @@ export default function VerifyPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   className="w-full bg-[#0B0A10] border border-border rounded-xl p-6 relative overflow-hidden"
                 >
-                  <button onClick={cancelUpload} disabled={uploadState === 'analyzing'} className="absolute top-4 right-4 text-foreground/50 hover:text-white z-10 disabled:opacity-50">
+                  <button onClick={cancelUpload} disabled={uploadState === 'analyzing'} aria-label="Remove selected media" className="absolute top-4 right-4 text-foreground/50 hover:text-white z-10 disabled:opacity-50">
                     <X className="w-5 h-5" />
                   </button>
                   <div className="flex flex-col items-center text-center gap-4">
                     {audioPreview && <audio controls preload="metadata" src={audioPreview} className="w-full" aria-label="Selected speech clip"/>}
                     {imagePreview && <img src={imagePreview} alt="Photo selected for verification" className="w-full max-h-48 object-contain rounded-lg"/>}
-                    <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center border border-accent/30 shadow-[0_0_15px_rgba(244,183,64,0.2)]">
+                    <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center border border-accent/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
                       <ShieldCheck className="w-8 h-8 text-accent" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-lg text-white mb-1">
+                      <h3 className="font-bold text-lg text-white mb-1 break-all">
                         {activeTab === 'text' ? 'Text Claim Ready' : activeTab === 'url' ? 'URL Ready' : selectedFile?.name}
                       </h3>
                       <p className="text-sm text-foreground/50 mb-6 line-clamp-2 px-4">
-                        {textContent || `${(selectedFile?.size || 0) / 1024} KB`}
+                        {textContent || `${((selectedFile?.size || 0) / 1024 / 1024).toFixed(2)} MB · Ready to analyse`}
                       </p>
                     </div>
                     {uploadState !== 'analyzing' && (
                       <button 
                         onClick={startAnalysis}
-                        className="w-full bg-accent text-[#1E1C28] font-bold py-3.5 rounded-xl hover:bg-accent/90 transition-colors shadow-[0_0_20px_rgba(244,183,64,0.3)]"
+                        className="w-full bg-accent text-white font-bold py-3.5 rounded-xl hover:bg-accent/90 transition-colors shadow-[0_0_20px_rgba(59,130,246,0.3)]"
                       >
                         Begin Verification
                       </button>
@@ -313,7 +319,7 @@ export default function VerifyPage() {
 
             <div className="mt-6 flex items-center justify-center gap-2 text-xs text-foreground/50">
               <Lock className="w-3.5 h-3.5" />
-              <span>End-to-end encrypted investigation pipeline.</span>
+              <span>Only upload media you have permission to analyse.</span>
             </div>
           </div>
         </div>
@@ -325,36 +331,40 @@ export default function VerifyPage() {
             <div className="bg-[#1A1824] px-6 py-4 border-b border-border flex items-center justify-between font-['JetBrains_Mono',monospace] text-xs text-foreground/60">
               <div className="flex items-center gap-3">
                 <div className="flex gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FF5470]"></div>
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#F4B740]"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#3B82F6]"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#60A5FA]"></div>
                   <div className="w-2.5 h-2.5 rounded-full bg-[#22C55E]"></div>
                 </div>
-                <span className="ml-2 uppercase tracking-widest text-[#F4B740]">/dev/pipeline_monitor</span>
+                <span className="ml-2 uppercase tracking-widest text-[#60A5FA]">Analysis workspace</span>
               </div>
               <div className="flex items-center gap-2">
-                <Activity className={clsx("w-3.5 h-3.5", uploadState === 'analyzing' ? "text-[#F4B740] animate-pulse" : "text-foreground/30")} />
-                <span>{uploadState === 'analyzing' ? 'ACTIVE' : 'STANDBY'}</span>
+                <Activity className={clsx("w-3.5 h-3.5", uploadState === 'analyzing' ? "text-[#60A5FA] animate-pulse" : "text-foreground/30")} />
+                <span>{uploadState === 'analyzing' ? 'ANALYSING' : 'READY'}</span>
               </div>
             </div>
 
-            <div className="p-8 sm:p-12 flex-grow flex flex-col justify-center">
+            <div className="p-6 sm:p-10 flex-grow flex flex-col justify-center min-h-[360px]">
               {uploadState === 'idle' || uploadState === 'ready' ? (
-                <div className="flex flex-col items-center justify-center text-center h-full opacity-40">
-                  <Activity className="w-16 h-16 mb-4 text-foreground/30" />
-                  <p className="font-['JetBrains_Mono',monospace] text-sm tracking-widest uppercase">Waiting for input stream...</p>
+                <div className="flex flex-col items-center justify-center text-center h-full py-6">
+                  <div className="w-20 h-20 rounded-3xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-6"><ShieldCheck className="w-10 h-10 text-accent" /></div>
+                  <h2 className="text-2xl font-bold tracking-tight mb-3">{uploadState === 'ready' ? 'Ready when you are.' : 'Your analysis starts here.'}</h2>
+                  <p className="text-sm text-foreground/50 leading-relaxed max-w-sm">{uploadState === 'ready' ? 'Review your selected file, then begin verification to see the returned signals and evidence.' : 'Choose your media on the left. Results will show the detected signals and any uncertainty.'}</p>
+                  <div className="grid grid-cols-3 gap-3 w-full mt-8 max-w-md">
+                    {[{icon: Activity, label: 'Model signals'}, {icon: Search, label: 'Evidence'}, {icon: FileCheck, label: 'PDF report'}].map(item => <div key={item.label} className="rounded-xl border border-border bg-white/[0.02] px-2 py-4"><item.icon className="w-5 h-5 text-accent mx-auto mb-2"/><span className="text-xs text-foreground/60">{item.label}</span></div>)}
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col h-full w-full max-w-md mx-auto">
                   {/* Progress Header */}
                   <div className="flex justify-between items-end mb-4 font-['JetBrains_Mono',monospace] text-xs">
-                    <span className="text-[#F4B740] uppercase tracking-widest font-bold">Investigation Running</span>
+                    <span className="text-[#60A5FA] uppercase tracking-widest font-bold">Investigation Running</span>
                     <span className="text-white text-lg">{Math.floor(progress)}%</span>
                   </div>
                   
                   {/* Progress Bar */}
                   <div className="w-full h-1.5 bg-[#1A1824] rounded-full overflow-hidden mb-12">
                     <motion.div 
-                      className="h-full bg-gradient-to-r from-[#FF5470] to-[#F4B740]"
+                      className="h-full bg-gradient-to-r from-[#3B82F6] to-[#60A5FA]"
                       animate={{ width: `${progress}%` }}
                       transition={{ ease: "linear" }}
                     />
@@ -380,8 +390,8 @@ export default function VerifyPage() {
                         <div key={step.id} className="relative z-10 flex items-center gap-6">
                           <div className={clsx(
                             "w-[30px] h-[30px] rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300",
-                            isComplete ? "bg-[#F4B740] text-[#1E1C28] shadow-[0_0_10px_rgba(244,183,64,0.4)]" : 
-                            isActive ? "bg-[#252134] border-2 border-[#F4B740] text-[#F4B740]" : 
+                            isComplete ? "bg-[#60A5FA] text-white shadow-[0_0_10px_rgba(59,130,246,0.4)]" :
+                            isActive ? "bg-[#252134] border-2 border-[#60A5FA] text-[#60A5FA]" :
                             "bg-[#1A1824] border border-[#2B2639] text-foreground/30"
                           )}>
                             {isComplete ? <ShieldCheck className="w-4 h-4" /> : <step.icon className="w-4 h-4" />}
@@ -390,7 +400,7 @@ export default function VerifyPage() {
                           <div className="flex flex-col">
                             <span className={clsx(
                               "font-['Chakra_Petch',sans-serif] font-bold text-lg tracking-wide transition-colors",
-                              isComplete ? "text-white" : isActive ? "text-[#F4B740]" : "text-foreground/30"
+                              isComplete ? "text-white" : isActive ? "text-[#60A5FA]" : "text-foreground/30"
                             )}>
                               {step.label}
                             </span>
@@ -411,9 +421,9 @@ export default function VerifyPage() {
                               initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                             >
                               <div className="flex gap-1">
-                                <span className="w-1.5 h-1.5 bg-[#F4B740] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                                <span className="w-1.5 h-1.5 bg-[#F4B740] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                                <span className="w-1.5 h-1.5 bg-[#F4B740] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                                <span className="w-1.5 h-1.5 bg-[#60A5FA] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                <span className="w-1.5 h-1.5 bg-[#60A5FA] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                <span className="w-1.5 h-1.5 bg-[#60A5FA] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                               </div>
                             </motion.div>
                           )}

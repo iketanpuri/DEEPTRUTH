@@ -3,10 +3,21 @@
 import Link from "next/link";
 import Head from "next/head";
 import { useEffect } from "react";
+import { UploadCloud, Search, FileCheck, FileImage, FileAudio, Download } from "lucide-react";
 import "./landing.css";
 
 export default function HomePage() {
   useEffect(() => {
+    const frames = new Set<number>();
+    const timers = new Set<number>();
+    function requestAnimationFrame(callback: FrameRequestCallback) {
+      const id = window.requestAnimationFrame(time => { frames.delete(id); callback(time); });
+      frames.add(id); return id;
+    }
+    function setTimeout(callback: () => void, delay: number) {
+      const id = window.setTimeout(() => { timers.delete(id); callback(); }, delay);
+      timers.add(id); return id;
+    }
     // ----------------------------------------------------
     // Component 1: Counters and Progress Bar Animations
     // ----------------------------------------------------
@@ -89,8 +100,7 @@ export default function HomePage() {
     const fill = document.getElementById("pl-fill");
     const overlay = document.getElementById("pl-overlay");
 
-    const TARGET_SCORE = 96.8;
-    const DURATION = 3400;
+    const DURATION = 650;
     const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let startPreloader: number | null = null;
 
@@ -125,7 +135,7 @@ export default function HomePage() {
         if (sigVal) sigVal.textContent = "61.2";
         if (frameVal) frameVal.textContent = "512";
         if (statusLabel) {
-          statusLabel.textContent = "Verdict: " + TARGET_SCORE + "% synthetic";
+          statusLabel.textContent = "Workspace ready";
           statusLabel.classList.add("pl-done");
         }
         dismissOverlay();
@@ -134,7 +144,7 @@ export default function HomePage() {
 
     // Delay the preloader slightly so the user sees it animating
     requestAnimationFrame(framePreloader);
-
+    return () => { frames.forEach(id => window.cancelAnimationFrame(id)); timers.forEach(id => window.clearTimeout(id)); };
   }, []);
 
   return (
@@ -147,20 +157,20 @@ export default function HomePage() {
 
       <div id="pl-overlay">
         <div className="pl-meta">
-          <span>CF &mdash; 001</span>
-          <span>SIG <span className="pl-accent" id="pl-sigVal">00.0</span>hz</span>
-          <span>FRAME <span id="pl-frameVal">000</span>/512</span>
+          <span>DEEPTRUTH</span>
+          <span className="pl-accent">Media verification</span>
+          <span>Images / video / audio</span>
           <span>EST. NOW</span>
         </div>
 
         <div className="pl-center">
-          <div className="pl-kicker">Analyzing the signal</div>
+          <div className="pl-kicker">Preparing your workspace</div>
           <div className="pl-marquee">
             <div className="pl-marquee-track">
-              <span>VERIFYING&nbsp;DEEPTRUTH'S&nbsp;VERDICT</span><span className="pl-tick">&mdash;</span>
-              <span>VERIFYING&nbsp;DEEPTRUTH'S&nbsp;VERDICT</span><span className="pl-tick">&mdash;</span>
-              <span>VERIFYING&nbsp;DEEPTRUTH'S&nbsp;VERDICT</span><span className="pl-tick">&mdash;</span>
-              <span>VERIFYING&nbsp;DEEPTRUTH'S&nbsp;VERDICT</span><span className="pl-tick">&mdash;</span>
+              <span>CHECK&nbsp;BEFORE&nbsp;YOU&nbsp;SHARE</span><span className="pl-tick">&mdash;</span>
+              <span>CHECK&nbsp;BEFORE&nbsp;YOU&nbsp;SHARE</span><span className="pl-tick">&mdash;</span>
+              <span>CHECK&nbsp;BEFORE&nbsp;YOU&nbsp;SHARE</span><span className="pl-tick">&mdash;</span>
+              <span>CHECK&nbsp;BEFORE&nbsp;YOU&nbsp;SHARE</span><span className="pl-tick">&mdash;</span>
             </div>
           </div>
         </div>
@@ -177,12 +187,12 @@ export default function HomePage() {
       <div className="status-bar">
         <div className="wrap status-inner">
           <div className="marquee-track">
-            <span className="status-pill"><span className="dot"></span>ANALYSIS ENGINE ONLINE</span>
-            <span>v1.0 | 31.10.2026</span>
-            <span>Precision: Trying to be as much we can</span>
-            <span className="status-pill"><span className="dot"></span>ANALYSIS ENGINE ONLINE</span>
-            <span>v1.0 | 31.10.2026</span>
-            <span>Precision: Trying to be as much we can</span>
+            <span className="status-pill"><span className="dot"></span>MEDIA VERIFICATION</span>
+            <span>Images / video / audio</span>
+            <span>Signals, evidence &amp; uncertainty</span>
+            <span className="status-pill"><span className="dot"></span>MEDIA VERIFICATION</span>
+            <span>Images / video / audio</span>
+            <span>Signals, evidence &amp; uncertainty</span>
           </div>
         </div>
       </div>
@@ -197,7 +207,7 @@ export default function HomePage() {
               <li><a href="#cases">Use cases</a></li>
               <li><a href="#coverage">Coverage</a></li>
             </ul>
-            <Link href="/verify" className="nav-cta">[ Analyze media &rarr; ]</Link>
+            <Link href="/verify" className="nav-cta">Start verification &rarr;</Link>
           </div>
         </nav>
       </div>
@@ -205,17 +215,17 @@ export default function HomePage() {
       <header className="hero">
         <div className="wrap hero-grid">
           <div>
-            <div className="eyebrow"><span className="dot"></span>Live media forensics</div>
-            <h1>Know what's <span className="accent">real</span>.<br />Before it spreads.</h1>
-            <p className="hero-sub">Upload an image or video. DeepTruth checks AI-generation and face-manipulation signals, then presents the actual evidence and limitations.</p>
+            <div className="eyebrow"><span className="dot"></span>A closer look at digital media</div>
+            <h1>Look closer.<br />Share <span className="accent">smarter.</span></h1>
+            <p className="hero-sub">A second look before your next share. Check images, sampled video frames and spoken audio for manipulation signals—with evidence you can review.</p>
             <div className="hero-cta">
-              <Link href="/verify" className="btn-primary">Analyze a file &rarr;</Link>
+              <Link href="/verify" className="btn-primary">Start verification &rarr;</Link>
               <a href="#how" className="btn-secondary">See how it works</a>
             </div>
             <div className="hero-tags">
-              <span className="hero-tag">JPG / PNG / WebP / video</span>
-              <span className="hero-tag">Response time varies</span>
-              <span className="hero-tag">Task-specific confidence scores</span>
+              <span className="hero-tag"><FileImage size={14} aria-hidden="true" /> Images &amp; video</span>
+              <span className="hero-tag"><FileAudio size={14} aria-hidden="true" /> Spoken audio</span>
+              <span className="hero-tag"><Download size={14} aria-hidden="true" /> Evidence PDF</span>
             </div>
           </div>
 
@@ -252,27 +262,27 @@ export default function HomePage() {
         <div className="wrap">
           <div className="section-head">
             <div className="section-tag">Process</div>
-            <h2>Three steps to a verdict</h2>
-            <p>Images are checked directly. Videos are sampled at 15%, 50%, and 85% of duration; this is not full-video or audio analysis.</p>
+            <h2>From upload to a clearer picture</h2>
+            <p>Choose your media, review the returned signals, and keep the evidence. Uncertain results stay clearly marked.</p>
           </div>
           <div className="steps">
             <div className="step">
-              <div className="step-icon">📤</div>
+              <div className="step-icon"><UploadCloud aria-hidden="true" /></div>
               <div className="step-num">01</div>
               <h3>Upload media</h3>
-              <p>Upload an image or browser-playable video. Three timestamped JPEG frames are extracted from video.</p>
+              <p>Choose an image, video or a 2–30 second speech clip. You can also capture a photo using your camera.</p>
             </div>
             <div className="step">
-              <div className="step-icon">🔎</div>
+              <div className="step-icon"><Search aria-hidden="true" /></div>
               <div className="step-num">02</div>
               <h3>Analyze signals</h3>
-              <p>Two complementary Sightengine models check fully AI-generated imagery and identity-level facial manipulation. Quality checks flag unsuitable samples.</p>
+              <p>Visual models check AI-generation and facial-manipulation signals. Spoken audio is checked locally, with speech and quality screening.</p>
             </div>
             <div className="step">
-              <div className="step-icon">📊</div>
+              <div className="step-icon"><FileCheck aria-hidden="true" /></div>
               <div className="step-num">03</div>
-              <h3>Get a confidence score</h3>
-              <p>Inspect each model confidence separately. The headline shows the strongest signal, with uncertainty and limitations alongside.</p>
+              <h3>Review your evidence</h3>
+              <p>Review scores, sample evidence and limitations. Download a PDF to support further investigation.</p>
             </div>
           </div>
         </div>
@@ -413,13 +423,14 @@ export default function HomePage() {
           <div className="section-head">
             <div className="section-tag">Problem statement coverage</div>
             <h2>Scope of this prototype.</h2>
-            <p>DeepTruth asks for media analysis, confidence, supporting evidence, and limitations. This prototype focuses on images and sampled video frames. It does not guarantee authenticity or analyse audio.</p>
+            <p>DeepTruth asks for media analysis, confidence, supporting evidence, and limitations. This prototype checks images, sampled video frames and spoken audio. Results are indicators for review, not a guarantee of authenticity.</p>
           </div>
           <table className="compare-table coverage-table">
             <tbody>
               <tr><th>Requirement from problem statement</th><th>DeepTruth</th></tr>
               <tr><td>AI-generated images / sampled frames</td><td className="check">✅</td></tr>
               <tr><td>Identity-level face-manipulation signals</td><td className="check">✅</td></tr>
+              <tr><td>Local synthetic-speech detection</td><td className="check">✅</td></tr>
               <tr><td>Task-specific confidence scores</td><td className="check">✅</td></tr>
               <tr><td>Visible samples and model outputs</td><td className="check">✅</td></tr>
               <tr><td>Visible limitations and uncertainty</td><td className="check">✅</td></tr>
@@ -455,7 +466,7 @@ export default function HomePage() {
           <div>
             <div className="section-tag">Sample output</div>
             <h2 style={{ fontFamily: "var(--body)", fontSize: "30px", fontWeight: 800, marginBottom: "14px" }}>What you get back</h2>
-            <p style={{ color: "var(--muted)", fontSize: "15px" }}>Completed analyses provide model outputs, sample evidence, context, and limitations in a downloadable JSON report. This card is illustrative; use the result-page download for real evidence.</p>
+            <p style={{ color: "var(--muted)", fontSize: "15px" }}>Completed analyses provide model outputs, sample evidence, context, and limitations in a downloadable PDF report. This card is illustrative; use the result-page download for real evidence.</p>
           </div>
           <div className="result-panel">
             <div className="result-head">Illustrative output — not a real scan</div>
@@ -492,10 +503,10 @@ export default function HomePage() {
       <section id="try" className="cta-section" style={{ borderBottom: "1px solid var(--line)" }}>
         <div className="wrap">
           <h2>Run a media assessment.</h2>
-          <p>Uses configured server-side provider access. Quota and service availability apply.</p>
+          <p>Start with a file. Leave with clearer signals, supporting evidence and an explanation of the result.</p>
           <div className="cta-buttons">
             <Link href="/verify" className="btn-primary">Analyze media &rarr;</Link>
-            <a href="#" className="btn-secondary">Talk to us</a>
+            <Link href="/technology" className="btn-secondary">Explore the technology</Link>
           </div>
         </div>
       </section>
@@ -504,9 +515,9 @@ export default function HomePage() {
         <div className="wrap footer-row">
           <p>© 2026 DeepTruth</p>
           <div className="footer-links">
-            <Link href="/documentation">Docs</Link>
-            <a href="#">API</a>
-            <a href="#">Privacy</a>
+            <Link href="/how-it-works">How it works</Link>
+            <Link href="/technology">Technology</Link>
+            <Link href="/privacy">Privacy</Link>
           </div>
         </div>
       </footer>

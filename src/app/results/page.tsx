@@ -102,17 +102,18 @@ function ResultsContent() {
       <div className="container mx-auto max-w-6xl px-4 pt-24 pb-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight mb-2 font-['Chakra_Petch',sans-serif]">Verification Report</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent mb-3">DeepTruth / Analysis results</p>
+          <h1 className="text-3xl font-extrabold tracking-tight mb-2 font-['Chakra_Petch',sans-serif]">Verification Report</h1>
             {data.isDemo && <p className="text-sm text-amber-400 mb-2">Illustrative preset — no live analysis or source retrieval was performed.</p>}
             <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-foreground/50">
-              <span>ID: {data.id}</span>
+              <span className="break-all">ID: {data.id}</span>
               <span className="hidden sm:inline">•</span>
               <span>{new Date(data.timestamp).toLocaleString()}</span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* LEFT COLUMN: Verdict & Original Content */}
           <div className="lg:col-span-5 flex flex-col gap-8">
 
@@ -266,17 +267,18 @@ function ResultsContent() {
     <div className="container mx-auto max-w-6xl px-4 pt-24 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight mb-2 font-['Chakra_Petch',sans-serif]">Media Forensics Analysis</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent mb-3">DeepTruth / Analysis results</p>
+          <h1 className="text-3xl font-extrabold tracking-tight mb-2 font-['Chakra_Petch',sans-serif]">Your detection report</h1>
           <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-foreground/50">
-            <span>ID: {data.id}</span>
+            <span className="break-all">ID: {data.id}</span>
             <span className="hidden sm:inline">•</span>
-            <span>{data.filename}</span>
+            <span className="break-all">{data.filename}</span>
           </div>
         </div>
       </div>
 
       {data.cache?.reused && <p className="text-xs text-foreground/50 mb-4">Saved analysis reused from {new Date(data.cache.analysedAt).toLocaleString()}. No new provider requests were needed for this upload.</p>}
-      <button onClick={downloadReport} disabled={exporting} aria-busy={exporting} className="bg-white text-black px-4 py-2 rounded font-bold hover:bg-gray-200 transition-colors flex items-center gap-2 text-sm mb-6"><Download className="w-4 h-4"/> {exporting ? 'Generating PDF...' : 'Download evidence report'}</button>
+      <button onClick={downloadReport} disabled={exporting} aria-busy={exporting} className="bg-white text-black px-5 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center gap-2 text-sm mb-6"><Download className="w-4 h-4"/> {exporting ? 'Generating PDF...' : 'Download evidence report'}</button>
       {canReportCyberCrime && (
         <div className="mb-6">
           <a
@@ -289,7 +291,7 @@ function ResultsContent() {
             aria-busy={exporting}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 border border-red-500/40 bg-red-500/10 text-red-400 px-4 py-2 rounded font-bold hover:bg-red-500/20 transition-colors text-sm"
+            className="inline-flex items-center gap-2 border border-red-500/40 bg-red-500/10 text-red-400 px-5 py-3 rounded-xl font-bold hover:bg-red-500/20 transition-colors text-sm"
           >
             <AlertTriangle className="w-4 h-4" aria-hidden="true" /> Report to Cyber Crime
           </a>
@@ -297,11 +299,11 @@ function ResultsContent() {
         </div>
       )}
       {exportError && <p role="alert" className="text-sm text-red-400 mb-4">{exportError}</p>}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-5 flex flex-col gap-8">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={clsx("glass-panel p-8 flex flex-col items-center text-center", colorMap[data.color])}>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={clsx("glass-panel p-6 sm:p-8 rounded-2xl flex flex-col items-center text-center", colorMap[data.color])}>
             <h2 className="text-xs font-bold tracking-widest text-foreground/70 mb-4 uppercase">{simpleResult ? 'AI or real?' : data.detectionSchemaVersion === 2 ? 'Combined AI-generation score' : 'Synthetic Probability'}</h2>
-            {simpleResult && <div className="flex items-center justify-center gap-2 mb-5"><StatusIcon className="w-6 h-6"/><h3 className="text-3xl font-bold tracking-wide">{simpleResult.title}</h3></div>}
+            {simpleResult && <div className="flex items-center justify-center gap-2 mb-5"><StatusIcon className="w-6 h-6 shrink-0"/><h3 className="text-xl sm:text-2xl font-bold tracking-tight leading-snug">{simpleResult.title}</h3></div>}
             {simpleResult && <p className="text-xs opacity-60 mb-4">{data.mediaType === 'audio' ? 'Synthetic voice score · lower means fewer signs' : data.assessment?.dualProvider ? (data.assessment.headlineProviders?.length === 2 ? `${data.assessment.strongestModel === 'Face-manipulation confidence' ? 'Face-manipulation' : 'AI-generation'} average · Sightengine + Hive · not accuracy` : 'Single-detector signal · two-provider average unavailable') : 'AI / manipulation score · lower means fewer signs'}</p>}
             <div className="relative w-48 h-48 mb-6 flex items-center justify-center">
               <motion.svg aria-hidden="true" className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 100 100">
@@ -317,7 +319,11 @@ function ResultsContent() {
               <StatusIcon className="w-6 h-6" />
               <h3 className="text-2xl font-bold tracking-wide">{data.status}</h3>
             </div>}
-            <p className="text-sm opacity-80 mb-4 font-medium">{(data.status === 'INCONCLUSIVE' || data.status === 'ANALYSIS UNAVAILABLE') && data.assessment?.reasons?.length ? data.assessment.reasons.join(' ') : simpleResult?.explanation || data.desc}</p>
+            {data.assessment && <div className="flex flex-wrap items-center justify-center gap-2 mb-5 text-[11px] text-foreground/60">
+              <span className="rounded-full border border-current/15 px-3 py-1.5">{data.assessment.completedChecks}/{data.assessment.requestedChecks} checks completed</span>
+              <span className="rounded-full border border-current/15 px-3 py-1.5">{data.mediaType === 'audio' ? 'Speech analysis' : data.mediaType === 'video' ? 'Sampled-frame analysis' : 'Image analysis'}</span>
+            </div>}
+            <p className="text-sm leading-relaxed opacity-80 mb-4 font-medium">{(data.status === 'INCONCLUSIVE' || data.status === 'ANALYSIS UNAVAILABLE') && data.assessment?.reasons?.length ? data.assessment.reasons.join(' ') : simpleResult?.explanation || data.desc}</p>
             {simpleResult && <p className="text-xs opacity-60">{simpleResult.caveat}</p>}
             {data.ensemble && <p className="text-xs opacity-60">{data.ensemble.method} {data.ensemble.limitations}</p>}
           </motion.div>
