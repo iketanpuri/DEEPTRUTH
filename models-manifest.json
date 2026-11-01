@@ -1,0 +1,26 @@
+{
+  "storage": "Git LFS",
+  "models": [
+    {
+      "path": ".audio-models/spectra-aasist3-int8-dynamic.onnx",
+      "bytes": 364036647,
+      "sha256": "444f832d306a2be4f823119f84e698e8821db6a1aab248593d4b05b7a9a48108",
+      "license": "Apache-2.0",
+      "source": "https://huggingface.co/Limitless-8/spectra-aasist3-int8-audio-deepfake"
+    },
+    {
+      "path": ".audio-models/silero_vad.onnx",
+      "bytes": 2327524,
+      "sha256": "1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3",
+      "license": "MIT",
+      "source": "https://github.com/snakers4/silero-vad"
+    },
+    {
+      "path": ".image-models/community-forensics.onnx",
+      "bytes": 87377479,
+      "sha256": "d7bb021fc2622d1f746da29010ef02d07028a76ab8c7759b0406c1d6763d1e72",
+      "license": "MIT",
+      "source": "https://huggingface.co/Red-had1911/deepfake-detector-onnx"
+    }
+  ]
+}

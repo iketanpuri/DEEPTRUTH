@@ -41,8 +41,11 @@ yarn-error.log*
 next-env.d.ts
 
 # Local audio runtime and model weights
-/.audio-models/
+/.audio-models/*
+!/.audio-models/spectra-aasist3-int8-dynamic.onnx
+!/.audio-models/silero_vad.onnx
 /.venv-audio*/
 __pycache__/
 
-/.image-models/
+/.image-models/*
+!/.image-models/community-forensics.onnx
