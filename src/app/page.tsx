@@ -236,7 +236,7 @@ export default function HomePage() {
             </div>
             <div className="terminal-body">
               <div className="t-preview">
-                <div className="t-face"></div>
+                <img className="t-face-mesh" src="/face-mesh.svg" alt="Illustrative polygonal face mesh" />
                 <div className="t-scanline"></div>
               </div>
               <div className="t-divider">scanning</div>

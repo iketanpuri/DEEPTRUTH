@@ -333,8 +333,16 @@
 .landingPage .section-head { margin-bottom: 36px; }
 .landingPage .section-head h2 { line-height: 1.2; }
 .landingPage .step, .landingPage .case, .landingPage .signal, .landingPage .frame-analysis, .landingPage .result-panel { border-radius: 16px; background: linear-gradient(145deg, #131e2d, #0e1622); }
-.landingPage .step { transition: border-color .2s, transform .2s; }
-.landingPage .step:hover { border-color: #60a5fa66; transform: translateY(-3px); }
+.landingPage .step {
+  border-color: rgba(96, 165, 250, .8);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .35), 0 0 40px rgba(59, 130, 246, .36), 0 0 72px rgba(34, 211, 238, .14), inset 0 1px 0 rgba(147, 197, 253, .12);
+  transition: border-color .2s, transform .2s, box-shadow .25s;
+}
+.landingPage .step:hover {
+  border-color: rgba(96, 165, 250, .8);
+  transform: translateY(-3px);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .35), 0 0 40px rgba(59, 130, 246, .36), 0 0 72px rgba(34, 211, 238, .14), inset 0 1px 0 rgba(147, 197, 253, .12);
+}
 .landingPage .step-icon { width: 44px; height: 44px; background: #3b82f614; border-color: #3b82f630; color: #93c5fd; border-radius: 12px; }
 .landingPage .step-icon svg { width: 21px; height: 21px; }
 .landingPage .step p, .landingPage .case p { line-height: 1.75; }
@@ -362,4 +370,37 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .landingPage *, .landingPage *::before, .landingPage *::after { animation: none !important; transition: none !important; }
+}
+
+/* Persistent verification CTA glow, also retained on hover and focus. */
+.landingPage .nav-cta,
+.landingPage .hero-cta .btn-primary {
+  box-shadow: 0 0 0 1px #60a5fa80, 0 0 24px #3b82f680, 0 8px 40px #2563eb45;
+  transition: background .2s, transform .2s, box-shadow .25s;
+}
+.landingPage .nav-cta:hover,
+.landingPage .nav-cta:focus-visible,
+.landingPage .hero-cta .btn-primary:hover,
+.landingPage .hero-cta .btn-primary:focus-visible {
+  box-shadow: 0 0 0 1px #60a5fa80, 0 0 24px #3b82f680, 0 8px 40px #2563eb45;
+}
+
+/* Illustrative polygonal face in the homepage clip demo. */
+.landingPage .terminal .t-preview {
+  height: 270px;
+  background: radial-gradient(ellipse at center, rgba(29, 78, 216, .26), #080f1c 72%);
+  border-color: rgba(96, 165, 250, .25);
+}
+.landingPage .t-face-mesh {
+  display: block;
+  width: 250px;
+  height: 260px;
+  max-width: 90%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 18px rgba(59, 130, 246, .3));
+}
+.landingPage .terminal .t-scanline { z-index: 1; opacity: .75; }
+@media (max-width: 540px) {
+  .landingPage .terminal .t-preview { height: 240px; }
+  .landingPage .t-face-mesh { height: 230px; }
 }

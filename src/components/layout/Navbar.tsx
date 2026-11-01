@@ -142,7 +142,7 @@ export function Navbar() {
           <div className="flex items-center gap-3 sm:gap-4">
             <Link
               href="/verify"
-              className="hidden md:inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium bg-white text-black rounded-lg hover:bg-gray-200 transition-colors"
+              className="hidden md:inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium bg-white text-black rounded-lg hover:bg-gray-200 transition-[background-color,box-shadow] duration-200 shadow-[0_0_24px_rgba(59,130,246,0.55)] hover:shadow-[0_0_24px_rgba(59,130,246,0.55)] focus-visible:shadow-[0_0_24px_rgba(59,130,246,0.55)]"
             >
               Start Verification
             </Link>
@@ -234,7 +234,7 @@ export function Navbar() {
                 <Link
                   href="/verify"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex w-full items-center justify-center px-6 py-4 text-base font-medium bg-white text-black rounded-xl hover:bg-gray-200 transition-colors touch-target"
+                  className="flex w-full items-center justify-center px-6 py-4 text-base font-medium bg-white text-black rounded-xl hover:bg-gray-200 transition-[background-color,box-shadow] duration-200 shadow-[0_0_24px_rgba(59,130,246,0.55)] hover:shadow-[0_0_24px_rgba(59,130,246,0.55)] focus-visible:shadow-[0_0_24px_rgba(59,130,246,0.55)] touch-target"
                 >
                   Start Verification
                 </Link>
